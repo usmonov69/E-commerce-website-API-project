@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import login, logout
-from .permission import IsAuthor
+# from .permission import IsAuthor
 from .serializers import UserSerializer
 from .models import CustomUser
 
@@ -81,17 +81,16 @@ def signout(request, id):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    permission_classes = (IsAuthor,)
+    permission_classes_by_action = {'create' : [AllowAny]}
     queryset = CustomUser.objects.all().order_by('id')
     serializer_class = UserSerializer
 
-  
     def get_permissions(self):
-        permission_classes = []
-        if self.action == 'create' or self.action == 'reterive':
-            permission_classes = [AllowAny]
-        elif self.action == 'retrieve' or self.action == 'update' or self.action == 'partial_update':
-            permission_classes = [IsAuthenticated]
-        elif self.action == 'list' or self.action == 'destroy':
-            permission_classes = [IsAdminUser]
-        return [permission() for permission in permission_classes]
+        try:
+            # Return permission_classes depending on `action` 
+            return [permission() for permission in self.permission_classes_by_action[self.action]]
+
+        except KeyError:
+            # If action is not set return default permission_classes
+            return [permission() for permission in self.permission_classes]
+        
